@@ -1,0 +1,45 @@
+#pragma once
+#include <Register/Utility.hpp>
+namespace Kvasir {
+@[if peripheral.description]@
+    // @(peripheral.description.string)
+@[end if]@
+
+@[for reg in peripheral.find_all('register')]@
+@{    reg_name = format_register_name(peripheral, reg) }
+    namespace @(reg_name) {  @[if reg.description]/// @(reg.description.string)@[end if]
+        using Addr = Register::Address<@(register_address(peripheral, reg)),
+                                       @(no_action_if_zero_bits(reg)),
+                                       @(no_action_if_one_bits(reg)),
+                                       // This type is wrong
+                                       unsigned>;
+@[    for field in reg.find_all('field')]@
+@[        if field.description]@
+        /// @(field.description.string)
+@[        end if]@
+@[        if use_enumerated_values(field)]@
+@{            field_name = format_field_name(field) }
+        enum class @(field_name.capitalize())Val : unsigned {
+@[            for v in field.find_all('enumeratedValues')]@
+@{ value_name = format_enum_value_name(v) }
+            @(value_name)=0x@(v.value.string),@[if v.description]  /// @(v.description.string)@[end if]
+@[            end for]@
+        };
+
+        constexpr Register::FieldLocation<Addr,
+                                          Register::maskFromRange(@(msb(field)), @(lsb(field))),
+                                          Register::@(access(field)),
+                                          @(field_name.capitalize())Val> @(field_name){};
+
+        namespace @(field.find('name').string.capitalize())ValC {
+@[            for v in field.find_all('enumeratedValues')]@
+@{ value_name = v.find('name').string }
+            constexpr Register::FieldValue<decltype(@(field_name))::Type,
+                                          @(field_name.capitalize())Val::@(value_name)> @(value_name){};
+@[            end for]@
+        }  // @(field_name.capitalize())ValC
+@[        end if]@
+@[    end for]@
+    }  // namespace @(reg_name)
+@[end for]@
+}  // namespace Kvasir

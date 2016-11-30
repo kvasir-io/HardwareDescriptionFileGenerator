@@ -1,0 +1,24 @@
+@# assume EmPy context contains an array called io_keys with all the necessary metadata
+#pragma once
+#include <Io/Io.hpp>
+#include <Register/Register.hpp>
+namespace Kvasir {
+    namespace Io {
+@# TODO do something about this whitespace
+@[if has_group(io)]@
+@[for key in io]@
+@{key_name = key.name}
+@[if key_name != 'default']@#  questionable
+@[for port in expand_ports(io)]@
+        template<int Pin>
+        struct MakeAction<Action::@(key_name.capitalize()), Register::PinLocation<@(port_number(port)), Pin>> :
+            Register::Action<
+                Register::FieldLocation<
+                    Register::Address<@(io_address(io, key, device, port)), @(reserved(io, key, device, port))>, (1 << Pin)>,
+                Register::@(action(key))> {};
+@[end for]@
+@[end if]@
+@[end for]@
+@[end if]@
+    }  // namespace Io
+}  // namespace Kvasir
