@@ -14,6 +14,6 @@ for peripheral in properties.find_all('peripheral'):
     # TODO May need to sanitize the peripheral filename
     if peripheral.find('name') is None:
         continue
-    output_name = peripheral.find('name').string + '.hpp'
+    output_name = '/tmp/' + peripheral.find('name').string + '.hpp'
     peripheral_context = [('peripheral', peripheral)]
     utils.expand_template('../templates/peripheral.hpp.template', output_name, context_pairs=peripheral_context)
