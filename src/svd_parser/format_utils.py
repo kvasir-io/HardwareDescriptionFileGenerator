@@ -1,6 +1,8 @@
 from functools import reduce
 from operator import add
 import re
+
+
 ######## CMSIS SVD-specific formatting utilities
 #### IO
 
@@ -30,19 +32,21 @@ def port_number(port):
         return ord(port)-ord('A')
     return port
 
+# Technically this is a generic property function and should go in parser_utils
+def lookup(properties, key, name):
+    return [p for p in properties.find_all(key) if p.find('name') and p.find('name').string == name]
+
 def io_address(io, key, device, port):
-    # TODO wrong
     peripheral_name = io.find('peripheral').string.replace('%s', port)
     register_name = key.register.string
 
     # Get the peripheral with this name
-    base_address = None
-    # TODO: Lambda-ize this lookup
-    peripheral = [p for p in device.find_all('peripheral') if p.find('name') and p.find('name').string == peripheral_name]
+    peripheral = lookup(device, 'peripheral', peripheral_name)
     if len(peripheral) > 1:
         raise RuntimeError('non-unique peripheral found')
     if len(peripheral) == 0:
         raise RuntimeError('no peripheral named [' + peripheral_name + '] found')
+
     peripheral = peripheral[0]
 
     base_address = int(peripheral.baseAddress.string, 0)
@@ -79,15 +83,13 @@ def setBitsFromRange(msb, lsb, previous = 0):
 # device: tag
 # port: str
 def reserved(io, key, device, port):
-    # TODO: wrong
     peripheral_name = io.find('peripheral').string.replace('%s', port)
     register_name = key.register.string
 
     reserved = 0xFFFFFFFF
 
-    # TODO Consolidate this lookup
-    peripheral = [p for p in device.find_all('peripheral') if p.find('name') and p.find('name').string == peripheral_name][0]
-    register = [r for r in peripheral.find_all('register') if r.find('name') and r.find('name').string == register_name][0]
+    peripheral = lookup(device, 'peripheral', peripheral_name)[0]
+    register = lookup(device, 'register', register_name)[0]
 
     for field in register.find_all('field'):
         clearBitsFromRange(int(field.bitOffset.string) + int(field.bitWidth.string) - 1,
@@ -110,44 +112,84 @@ def format_register_name(peripheral, reg):
     return format_namespace(x)
 
 def register_address(peripheral, register):
-    # TODO Format as string to 8 places
     return padded_hex(int(peripheral.baseAddress.string, 0) + int(register.addressOffset.string, 0))
 
 def register_type(register):
-    if register.size.string and int(register.size.string) is 8:
+    if register.size and int(register.size.string) is 8:
         return 'unsigned char'
     return 'unsigned'
+
+register_to_keys = {
+    'name' : 'name',
+    'description' : 'description',
+    'modifiedWriteValues' : 'modifiedWriteValues',
+    'writeConstraint' : 'writeConstraint',
+    'readAction' : 'readAction',
+    'addressOffset' : 'bitOffset'
+}
+
+def expand_register_as_field(register, root):
+    from bs4 import BeautifulSoup
+    # TODO Is there a fancy transformation we can do to map the register schema to the field schema
+    # in a generic fashion?
+    # TODO This could be a bit more succinct.
+    field_tag = root.new_tag('field')
+    register.append(field_tag)
+    bitwidth = root.new_tag('bitWidth')
+    field_tag.append(bitwidth)
+    bitwidth.string = '8'  # TODO
+    for child in register:
+        # TODO Hmm
+        # TODO bitRange style and values
+        if child.name in register_to_keys:
+            child_tag = root.new_tag(register_to_keys[child.name])
+            field_tag.append(child_tag)
+            child_tag.string = child.string
+    return field_tag
 
 def dash_to_camel_case(x):
     return ''.join([y.capitalize() for y in x.split('-')])
 
 def access(field):
-    modified_write_values = None
+    modified_write_values = 'normal'
     if field.modifiedWriteValues:
         modified_write_values = field.modifiedWriteValues.string
-    else:
-        modified_write_values = 'normal'
-    read_action = None
+
+    read_action = 'normal'
     if field.readAction:
         read_action = field.readAction.string
-    else:
-        read_action = 'normal'
 
     access = 'read-write'
     if field.access:
         access = field.access.string
-    access = dash_to_camel_case(field.access.string)
+        access = dash_to_camel_case(field.access.string)
+
     if access == 'readWrite' and modified_write_values == 'normal' and read_action == 'normal':
         return 'ReadWriteAccess'
     return 'Access<Register::AccessType::%s,Register::ReadActionType::%s,Register::ModifiedWriteValueType::%s>' % (
             access,read_action,modified_write_values)
 
+def parse_bit_range(bit_range):
+    if (len(bit_range.string) < 5):
+        raise RuntimeError('bitRange field contained insufficient characters')
+    return bit_range.string[1:-1].split(':')
 
 def msb(field):
-    return int(field.bitOffset.string) + int(field.bitWidth.string) - 1
+    if field.bitOffset and field.bitWidth:
+        return int(field.bitOffset.string) + int(field.bitWidth.string) - 1
+    elif field.bitRange:
+        return int(parse_bit_range(field.bitRange)[0])
+    else:
+        raise RuntimeError('Bit offset/width style was not specified')
 
 def lsb(field):
-    return int(field.bitOffset.string)
+    if field.bitOffset and field.bitWidth:
+        return int(field.bitOffset.string)
+    elif field.bitRange:
+        return int(parse_bit_range(field.bitRange)[1])
+    else:
+        raise RuntimeError('Bit offset/width style was not specified')
+
 
 def no_action_if_zero_bits(field):
     no_action = 0xFFFFFFFF
@@ -161,7 +203,6 @@ def no_action_if_one_bits(field):
         setBitsFromRange(msb(field), lsb(field), no_action)
     return padded_hex(no_action)
 
-# TODO Wrong
 def use_enumerated_values(field):
     #if len(field.find_all('enumeratedValue')) > 4 or int(field.bitWidth.string) <= 2:
     # TODO there's a workaround we're missing here
@@ -194,13 +235,17 @@ def format_enum_value_name(v):
 
 def format_enum_value(v):
     value = v.value.string
-    # Freescale shit
+    # Freescale nonsense
     if value.startswith('#'):
         if 'x' in value:
             value = value.replace('x', '0')
         # Encode as binary
         return padded_hex(int(value[1:], 2))
-    return padded_hex(int(value))
+    return padded_hex(int(value, 0))
+
+def is_default(v):
+    if v.isDefault:
+        return True
 
 # Make sure to filter out C++ keywords
 def format_field_name(field):

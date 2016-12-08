@@ -1,9 +1,9 @@
 from bs4 import BeautifulSoup
 import em
 import json
+import os
 
 ######## Generic parsing utilities
-
 def parse_properties_from_xml(input_filename):
     with open(input_filename) as f:
         return BeautifulSoup(f.read(), 'xml')
@@ -16,11 +16,11 @@ def get_json(input_filename):
 def apply_extension(extension, properties):
     return apply_extension_impl(extension, properties, properties)
 
-# Propagate JSON extension map into the parsed soup
+# Recursively propagate JSON extension map into the parsed soup
 def apply_extension_impl(extension, properties, root):
     for element in extension:
-        # If the key "element" is already in the property tree:
         property_tags = properties.find_all(element, limit=1)
+        # If the key "element" is already in the property tree:
         if len(property_tags) > 0:
             # Override the element
             for property_tag in property_tags:
@@ -42,8 +42,8 @@ def apply_extension_impl(extension, properties, root):
                 properties.append(element_tag)
                 element_tag.string = str(extension[element])
 
-######## Template expansion
 
+######## Template expansion
 def expand_template(in_filename, out_filename, context_pairs = None):
     interpreter = em.Interpreter(output=open(out_filename, 'w'))
     if context_pairs:
@@ -59,4 +59,26 @@ def expand_template(in_filename, out_filename, context_pairs = None):
 
     interpreter.file(open(in_filename, 'r'))
     interpreter.shutdown()
+
+def parse_device(in_filename, out_directory, ext_filename = None):
+    properties = parse_properties_from_xml(in_filename)
+    if ext_filename:
+        extension = get_json(ext_filename)
+        apply_extension(extension, properties)
+    io = properties.find('io')
+
+    if io:
+        io_context = [('io', io), ('device', properties.device)]
+        expand_template('../templates/io.hpp.template',
+                os.path.join(out_directory, 'Io.hpp'), context_pairs=io_context)
+
+    for peripheral in properties.find_all('peripheral'):
+        # TODO May need to sanitize the peripheral filename
+        if peripheral.find('name') is None:
+            continue
+        output_name = os.path.join(out_directory, peripheral.find('name').string + '.hpp')
+        peripheral_context = [('peripheral', peripheral)]
+        expand_template(
+                '../templates/peripheral.hpp.template',
+                output_name, context_pairs=peripheral_context)
 

@@ -4,7 +4,6 @@
 #include <Register/Register.hpp>
 namespace Kvasir {
     namespace Io {
-@# TODO do something about this whitespace
 @[if has_group(io)]@
 @[for key in io]@
 @{key_name = key.name}
