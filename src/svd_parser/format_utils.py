@@ -105,14 +105,20 @@ def action(key):
 #### Registers
 def format_namespace(x):
     r = re.compile('[^a-zA-Z0-9_]')
-    return reduce(add, map(lambda s: s.capitalize(), r.sub('', x).lower().split('_')))
+    return reduce(add, map(lambda s: s.lower(), r.sub('', x).lower().split('_')))
 
 def format_register_name(peripheral, reg):
     x = peripheral.find('name').string + '_' + reg.find('name').string
     return format_namespace(x)
 
-def register_address(peripheral, register):
-    return padded_hex(int(peripheral.baseAddress.string, 0) + int(register.addressOffset.string, 0))
+def register_address(peripheral, register, cluster):
+    if cluster:
+        return padded_hex(int(peripheral.baseAddress.string, 0)
+                + int(cluster.addressOffset.string, 0)
+                + int(register.addressOffset.string, 0))
+
+    return padded_hex(int(peripheral.baseAddress.string, 0)
+                + int(register.addressOffset.string, 0))
 
 def register_type(register):
     if register.size and int(register.size.string) is 8:
@@ -137,10 +143,8 @@ def expand_register_as_field(register, root):
     register.append(field_tag)
     bitwidth = root.new_tag('bitWidth')
     field_tag.append(bitwidth)
-    bitwidth.string = '8'  # TODO
+    bitwidth.string = '8'  # TODO don't hardcode this?
     for child in register:
-        # TODO Hmm
-        # TODO bitRange style and values
         if child.name in register_to_keys:
             child_tag = root.new_tag(register_to_keys[child.name])
             field_tag.append(child_tag)
@@ -164,6 +168,8 @@ def access(field):
         access = field.access.string
         access = dash_to_camel_case(field.access.string)
 
+    access = access[0].lower() + access[1:]
+
     if access == 'readWrite' and modified_write_values == 'normal' and read_action == 'normal':
         return 'ReadWriteAccess'
     return 'Access<Register::AccessType::%s,Register::ReadActionType::%s,Register::ModifiedWriteValueType::%s>' % (
@@ -176,36 +182,41 @@ def parse_bit_range(bit_range):
 
 def msb(field):
     if field.bitOffset and field.bitWidth:
-        return int(field.bitOffset.string) + int(field.bitWidth.string) - 1
+        return int(field.bitOffset.string, 0) + int(field.bitWidth.string) - 1
     elif field.bitRange:
         return int(parse_bit_range(field.bitRange)[0])
+    elif field.msb:
+        return int(field.msb.string)
     else:
-        raise RuntimeError('Bit offset/width style was not specified')
+        raise RuntimeError('Bit offset/width style was not specified in field: ' + field.__str__())
 
 def lsb(field):
     if field.bitOffset and field.bitWidth:
-        return int(field.bitOffset.string)
+        return int(field.bitOffset.string, 0)
     elif field.bitRange:
         return int(parse_bit_range(field.bitRange)[1])
+    elif field.lsb:
+        return int(field.lsb.string)
     else:
         raise RuntimeError('Bit offset/width style was not specified')
 
-
-def no_action_if_zero_bits(field):
+def no_action_if_zero_bits(register):
     no_action = 0xFFFFFFFF
-    if 'oneTo' not in access(field):
-        clearBitsFromRange(msb(field), lsb(field), no_action)
+    for field in register.find_all('fields'):
+        if 'oneTo' not in access(field):
+            clearBitsFromRange(msb(field), lsb(field), no_action)
     return padded_hex(no_action)
 
-def no_action_if_one_bits(field):
+def no_action_if_one_bits(register):
     no_action = 0x00000000
-    if 'zeroTo' in access(field):
-        setBitsFromRange(msb(field), lsb(field), no_action)
+    for field in register.find_all('fields'):
+        if 'zeroTo' in access(field):
+            setBitsFromRange(msb(field), lsb(field), no_action)
     return padded_hex(no_action)
 
 def use_enumerated_values(field):
     #if len(field.find_all('enumeratedValue')) > 4 or int(field.bitWidth.string) <= 2:
-    # TODO there's a workaround we're missing here
+    # TODO there's a workaround we're missing here?
     if len(field.find_all('enumeratedValue')) > 4:
         return True
     return False

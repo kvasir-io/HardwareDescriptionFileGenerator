@@ -6,15 +6,13 @@ import os
 
 in_filename = '../data/MK11D5WS.svd'
 ext_filename = '../data/extensions/MK11D5WS.json'
+#in_filename = '../data/nrf52.svd'
+#ext_filename = None
+
 out_directory = '/tmp'
 
 properties = parser_utils.parse_properties_from_xml(in_filename)
 
-register = format_utils.lookup(properties, 'register', 'BACKKEY3')[0]
-if not register:
-    raise RuntimeError('argh')
-
-field_tag = format_utils.expand_register_as_field(register, properties)
 
 if ext_filename:
     extension = parser_utils.get_json(ext_filename)
@@ -31,7 +29,7 @@ for peripheral in properties.find_all('peripheral'):
     if peripheral.find('name') is None:
         continue
     output_name = os.path.join(out_directory, peripheral.find('name').string + '.hpp')
-    peripheral_context = [('peripheral', peripheral)]
+    peripheral_context = [('peripheral', peripheral), ('properties', properties)]
     parser_utils.expand_template(
             '../templates/peripheral.hpp.template',
             output_name, context_pairs=peripheral_context)

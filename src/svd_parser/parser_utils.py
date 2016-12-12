@@ -77,7 +77,7 @@ def parse_device(in_filename, out_directory, ext_filename = None):
         if peripheral.find('name') is None:
             continue
         output_name = os.path.join(out_directory, peripheral.find('name').string + '.hpp')
-        peripheral_context = [('peripheral', peripheral)]
+        peripheral_context = [('peripheral', peripheral), 'properties', properties]
         expand_template(
                 '../templates/peripheral.hpp.template',
                 output_name, context_pairs=peripheral_context)
