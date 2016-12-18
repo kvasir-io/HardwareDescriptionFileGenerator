@@ -60,25 +60,47 @@ def expand_template(in_filename, out_filename, context_pairs = None):
     interpreter.file(open(in_filename, 'r'))
     interpreter.shutdown()
 
-def parse_device(in_filename, out_directory, ext_filename = None):
+def write_final_header(properties, output_headers, out_directory):
+    with open(os.path.join(out_directory, properties.find('name').string + '.hpp'), 'w') as f:
+        f.write('#pragma once\n')
+        for header in output_headers:
+            f.write('#include <{}>\n'.format(header))
+
+def parse_device(in_filename, out_directory, ext_filename=None):
+    output_headers = []
+    template_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'templates')
+
     properties = parse_properties_from_xml(in_filename)
     if ext_filename:
         extension = get_json(ext_filename)
         apply_extension(extension, properties)
     io = properties.find('io')
 
+    vendor_folder = os.path.split(os.path.dirname(in_filename))[-1]
+    final_out_directory = os.path.join(
+            out_directory,
+            properties.device.cpu.find('name').string,
+            vendor_folder,
+            properties.device.find('name').string)
+
+    if not os.path.exists(final_out_directory):
+        os.makedirs(final_out_directory)
+
     if io:
         io_context = [('io', io), ('device', properties.device)]
-        expand_template('../templates/io.hpp.template',
-                os.path.join(out_directory, 'Io.hpp'), context_pairs=io_context)
+        io_path = os.path.join(final_out_directory, 'Io.hpp')
+        expand_template(os.path.join(template_dir, 'io.hpp.template'),
+                io_path, context_pairs=io_context)
+        output_headers.append(io_path)
 
     for peripheral in properties.find_all('peripheral'):
-        # TODO May need to sanitize the peripheral filename
         if peripheral.find('name') is None:
             continue
-        output_name = os.path.join(out_directory, peripheral.find('name').string + '.hpp')
-        peripheral_context = [('peripheral', peripheral), 'properties', properties]
+        output_name = os.path.join(final_out_directory, peripheral.find('name').string + '.hpp')
+        peripheral_context = [('peripheral', peripheral), ('properties', properties)]
         expand_template(
-                '../templates/peripheral.hpp.template',
+                os.path.join(template_dir, 'peripheral.hpp.template'),
                 output_name, context_pairs=peripheral_context)
+        output_headers.append(output_name)
 
+    write_final_header(properties, output_headers, out_directory)
