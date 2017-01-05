@@ -2,14 +2,14 @@ from functools import reduce
 from operator import add
 import re
 
-
 ######## CMSIS SVD-specific formatting utilities
 #### IO
 
 def padded_hex(n):
     # int n
     # return hex-encoded string with 8 digits
-    return "{0:#0{1}x}".format(n,10)
+    return "{0:#0{1}x}".format(n, 10)
+
 
 def has_group(io):
     #return 'group' in [x.string for x in io.find_all('type')]
@@ -19,6 +19,7 @@ def has_group(io):
 
     return False
 
+
 def expand_ports(io):
     ports = io.find('ports').string
 
@@ -27,15 +28,17 @@ def expand_ports(io):
     elif '-' in ports:
         m = ports.split('-')
         if m[1].isdigit():
-            return range(int(m[1]),int(m[2]))
+            return range(int(m[1]), int(m[2]))
         elif len(m[1]) == 1:
-            return [chr(i) for i in range(ord(m[0][0]),ord(m[1][0])+1)]
+            return [chr(i) for i in range(ord(m[0][0]), ord(m[1][0]) + 1)]
     return [ports]
+
 
 def port_number(port):
     if not port.isdigit():
-        return ord(port)-ord('A')
+        return ord(port) - ord('A')
     return port
+
 
 # Technically this is a generic property function and should go in parser_utils
 def unique_lookup(properties, key, name, recursive=False):
@@ -47,6 +50,7 @@ def unique_lookup(properties, key, name, recursive=False):
     if len(result) == 0:
         raise RuntimeError('no property named [' + name + '] found')
     return result[0]
+
 
 def io_address(io, key, device, port):
     peripheral_name = io.find('peripheral').string.replace('%s', port)
@@ -60,7 +64,7 @@ def io_address(io, key, device, port):
     if base_address is None:
         raise RuntimeError(
                 'No base address field found for peripheral ['
-                + peripheral_name + ']' )
+                + peripheral_name + ']')
 
     address_offset = None
     for register in peripheral.find_all('register'):
@@ -71,19 +75,22 @@ def io_address(io, key, device, port):
     if address_offset is None:
         raise RuntimeError(
                 'No address offset field found for peripheral ['
-                + peripheral_name + ']' )
+                + peripheral_name + ']')
 
     return padded_hex(base_address + address_offset)
 
-def clearBitsFromRange(msb, lsb, previous = 0):
-    for ii in range(lsb,msb+1):
-        previous &= ~(1<<ii)
+
+def clearBitsFromRange(msb, lsb, previous=0):
+    for ii in range(lsb, msb + 1):
+        previous &= ~(1 << ii)
     return previous
 
-def setBitsFromRange(msb, lsb, previous = 0):
-    for ii in range(lsb,msb+1):
-        previous |= (1<<ii)
+
+def setBitsFromRange(msb, lsb, previous=0):
+    for ii in range(lsb, msb + 1):
+        previous |= (1 << ii)
     return previous
+
 
 # io_key: tag
 # device: tag
@@ -103,19 +110,23 @@ def reserved(io, key, device, port):
                 reserved)
     return padded_hex(reserved)
 
+
 def action(key):
     if key.name == 'read':
         return 'ReadAction'
     return 'WriteLiteralAction<{0} << Pin>'.format(key.value.string)
+
 
 #### Registers
 def format_namespace(x):
     r = re.compile('[^a-zA-Z0-9_]')
     return reduce(add, map(lambda s: s.lower(), r.sub('', x).lower().split('_')))
 
+
 def format_register_name(peripheral, reg):
     x = peripheral.find('name').string + '_' + reg.find('name').string
     return format_namespace(x)
+
 
 def register_address(peripheral, register, cluster):
     if cluster:
@@ -126,19 +137,22 @@ def register_address(peripheral, register, cluster):
     return padded_hex(int(peripheral.baseAddress.string, 0)
                 + int(register.addressOffset.string, 0))
 
+
 def register_type(register):
-    if register.size and int(register.size.string) is 8:
+    # TODO What if register.size is hex
+    if register.size and int(register.size.string, 0) is 8:
         return 'unsigned char'
     return 'unsigned'
 
 register_to_keys = {
-    'name' : 'name',
-    'description' : 'description',
-    'modifiedWriteValues' : 'modifiedWriteValues',
-    'writeConstraint' : 'writeConstraint',
-    'readAction' : 'readAction',
-    'addressOffset' : 'bitOffset'
+    'name': 'name',
+    'description': 'description',
+    'modifiedWriteValues': 'modifiedWriteValues',
+    'writeConstraint': 'writeConstraint',
+    'readAction': 'readAction',
+    'addressOffset': 'bitOffset'
 }
+
 
 def expand_register_as_field(register, root):
     from bs4 import BeautifulSoup
@@ -157,8 +171,10 @@ def expand_register_as_field(register, root):
             child_tag.string = child.string
     return field_tag
 
+
 def dash_to_camel_case(x):
     return ''.join([y.capitalize() for y in x.split('-')])
+
 
 def access(field):
     modified_write_values = 'normal'
@@ -179,32 +195,36 @@ def access(field):
     if access == 'readWrite' and modified_write_values == 'normal' and read_action == 'normal':
         return 'ReadWriteAccess'
     return 'Access<Register::AccessType::%s,Register::ReadActionType::%s,Register::ModifiedWriteValueType::%s>' % (
-            access,read_action,modified_write_values)
+            access, read_action, modified_write_values)
+
 
 def parse_bit_range(bit_range):
     if (len(bit_range.string) < 5):
         raise RuntimeError('bitRange field contained insufficient characters')
     return bit_range.string[1:-1].split(':')
 
+
 def msb(field):
     if field.bitOffset and field.bitWidth:
-        return int(field.bitOffset.string, 0) + int(field.bitWidth.string) - 1
+        return int(field.bitOffset.string, 0) + int(field.bitWidth.string, 0) - 1
     elif field.bitRange:
-        return int(parse_bit_range(field.bitRange)[0])
+        return int(parse_bit_range(field.bitRange)[0], 0)
     elif field.msb:
-        return int(field.msb.string)
+        return int(field.msb.string, 0)
     else:
         raise RuntimeError('Bit offset/width style was not specified in field: ' + field.__str__())
+
 
 def lsb(field):
     if field.bitOffset and field.bitWidth:
         return int(field.bitOffset.string, 0)
     elif field.bitRange:
-        return int(parse_bit_range(field.bitRange)[1])
+        return int(parse_bit_range(field.bitRange)[1], 0)
     elif field.lsb:
-        return int(field.lsb.string)
+        return int(field.lsb.string, 0)
     else:
         raise RuntimeError('Bit offset/width style was not specified')
+
 
 def no_action_if_zero_bits(register):
     no_action = 0xFFFFFFFF
@@ -213,12 +233,14 @@ def no_action_if_zero_bits(register):
             clearBitsFromRange(msb(field), lsb(field), no_action)
     return padded_hex(no_action)
 
+
 def no_action_if_one_bits(register):
     no_action = 0x00000000
     for field in register.find_all('fields'):
         if 'zeroTo' in access(field):
             setBitsFromRange(msb(field), lsb(field), no_action)
     return padded_hex(no_action)
+
 
 def use_enumerated_values(field):
     #if len(field.find_all('enumeratedValue')) > 4 or int(field.bitWidth.string) <= 2:
@@ -227,28 +249,31 @@ def use_enumerated_values(field):
         return True
     return False
 
+
 def format_variable(v):
     #all c++ keywords
-    cppKeywords = ['alignas','alignof','and','asm','auto','bitand','bitor','bool','break','case',\
-    'catch','char','class','compl','concept','const','constexpr','continue','decltype','default',\
-    'delete','do','double','else','enum','explicit','export','extern','false','float','for'\
-    'friend','goto','if','inline','int','long','mutable','namespace','new','noexcept','not'\
-    'nullptr','operator','or','private','protected','public','register','requires','return'\
-    'short','signed','sizeof','static','struct','switch','template','this','throw','true'\
-    'try','typedef','typeid','typename','union','unsigned','using','virtual','void','volatile'\
-    'while','xor']
+    cppKeywords = ['alignas', 'alignof', 'and', 'asm', 'auto', 'bitand', 'bitor', 'bool', 'break', 'case', \
+    'catch', 'char', 'class', 'compl', 'concept', 'const', 'constexpr', 'continue', 'decltype', 'default', \
+    'delete', 'do', 'double', 'else', 'enum', 'explicit', 'export', 'extern', 'false', 'float', 'for' \
+    'friend', 'goto', 'if', 'inline', 'int', 'long', 'mutable', 'namespace', 'new', 'noexcept', 'not' \
+    'nullptr', 'operator', 'or', 'private', 'protected', 'public', 'register', 'requires', 'return' \
+    'short', 'signed', 'sizeof', 'static', 'struct', 'switch', 'template', 'this', 'throw', 'true' \
+    'try', 'typedef', 'typeid', 'typename', 'union', 'unsigned', 'using', 'virtual', 'void', 'volatile' \
+    'while', 'xor']
 
     out = format_namespace(v)
-    out = out[:1].lower()+out[1:]
+    out = out[:1].lower() + out[1:]
     if out in cppKeywords:
-        out += '_'              #suffix register names that are c++ keywords to prevent clash
+        out += '_'              # suffix register names that are c++ keywords to prevent clash
     return out
+
 
 def format_enum_value_name(v):
     value = v.find('name').string
     if value[:1].isdigit():
         value = 'v' + value
     return format_variable(value)
+
 
 def format_enum_value(v):
     value = v.value.string
@@ -260,9 +285,11 @@ def format_enum_value(v):
         return padded_hex(int(value[1:], 2))
     return padded_hex(int(value, 0))
 
+
 def is_default(v):
     if v.isDefault:
         return True
+
 
 # Make sure to filter out C++ keywords
 def format_field_name(field):

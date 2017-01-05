@@ -3,18 +3,22 @@ import em
 import json
 import os
 
+
 ######## Generic parsing utilities
 def parse_properties_from_xml(input_filename):
     with open(input_filename) as f:
         return BeautifulSoup(f.read(), 'xml')
+
 
 # Read a JSON extension file
 def get_json(input_filename):
     with open(input_filename) as f:
         return json.load(f)
 
+
 def apply_extension(extension, properties):
     return apply_extension_impl(extension, properties, properties)
+
 
 # Recursively propagate JSON extension map into the parsed soup
 def apply_extension_impl(extension, properties, root):
@@ -32,7 +36,7 @@ def apply_extension_impl(extension, properties, root):
         else:
             # Add the element to the property tree
             if type(extension[element]) == dict:
-                # recursively call add_properties on the children of this 
+                # recursively call add_properties on the children of this
                 element_tag = root.new_tag(element)
                 properties.append(element_tag)
                 apply_extension_impl(extension[element], element_tag, root)
@@ -44,7 +48,7 @@ def apply_extension_impl(extension, properties, root):
 
 
 ######## Template expansion
-def expand_template(in_filename, out_filename, context_pairs = None):
+def expand_template(in_filename, out_filename, context_pairs=None):
     interpreter = em.Interpreter(output=open(out_filename, 'w'))
     if context_pairs:
         for p in context_pairs:
@@ -60,13 +64,15 @@ def expand_template(in_filename, out_filename, context_pairs = None):
     interpreter.file(open(in_filename, 'r'))
     interpreter.shutdown()
 
+
 def write_final_header(properties, output_headers, out_name):
     with open(out_name, 'w') as f:
         f.write('#pragma once\n')
         for header in output_headers:
             f.write('#include <{}>\n'.format(header))
 
-# Only list the headers needed for a particular device. 
+
+# Only list the headers needed for a particular device.
 def list_output_headers(device_file, out_directory, ext_filename=None):
     return parse_device(
             device_file, out_directory,
@@ -90,9 +96,16 @@ def parse_device(in_filename, out_directory,
     io = properties.find('io')
 
     vendor_folder = os.path.split(os.path.dirname(in_filename))[-1]
+
+    final_out_directory = out_directory
+
+    if properties.device.cpu:
+        cpuname = properties.device.cpu.find('name')
+        if cpuname:
+            final_out_directory = os.path.join(final_out_directory, cpuname.string)
+
     final_out_directory = os.path.join(
-            out_directory,
-            properties.device.cpu.find('name').string,
+            final_out_directory,
             vendor_folder,
             properties.device.find('name').string)
 
