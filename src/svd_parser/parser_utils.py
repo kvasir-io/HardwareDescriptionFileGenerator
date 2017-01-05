@@ -60,20 +60,33 @@ def expand_template(in_filename, out_filename, context_pairs = None):
     interpreter.file(open(in_filename, 'r'))
     interpreter.shutdown()
 
-def write_final_header(properties, output_headers, out_directory):
-    with open(os.path.join(out_directory, properties.find('name').string + '.hpp'), 'w') as f:
+def write_final_header(properties, output_headers, out_name):
+    with open(out_name, 'w') as f:
         f.write('#pragma once\n')
         for header in output_headers:
             f.write('#include <{}>\n'.format(header))
 
-def parse_device(in_filename, out_directory, ext_filename=None):
+# Only list the headers needed for a particular device. 
+def list_output_headers(device_file, out_directory, ext_filename=None):
+    return parse_device(
+            device_file, out_directory,
+            ext_filename=ext_filename, write_files=False, verbose=False)
+
+
+def parse_device(in_filename, out_directory,
+        ext_filename=None, write_files=True, verbose=True):
     output_headers = []
     template_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'templates')
 
     properties = parse_properties_from_xml(in_filename)
+    if verbose:
+        print('Parsed properties from XML.')
+
     if ext_filename:
         extension = get_json(ext_filename)
         apply_extension(extension, properties)
+        if verbose:
+            print('Applied extension from JSON.')
     io = properties.find('io')
 
     vendor_folder = os.path.split(os.path.dirname(in_filename))[-1]
@@ -87,20 +100,34 @@ def parse_device(in_filename, out_directory, ext_filename=None):
         os.makedirs(final_out_directory)
 
     if io:
-        io_context = [('io', io), ('device', properties.device)]
         io_path = os.path.join(final_out_directory, 'Io.hpp')
-        expand_template(os.path.join(template_dir, 'io.hpp.template'),
-                io_path, context_pairs=io_context)
         output_headers.append(io_path)
+
+        if write_files:
+            # This takes a long time.
+            io_context = [('io', io), ('device', properties.device)]
+            expand_template(os.path.join(template_dir, 'io.hpp.template'),
+                    io_path, context_pairs=io_context)
+            if verbose:
+                print('Wrote {}'.format(io_path))
 
     for peripheral in properties.find_all('peripheral'):
         if peripheral.find('name') is None:
             continue
         output_name = os.path.join(final_out_directory, peripheral.find('name').string + '.hpp')
-        peripheral_context = [('peripheral', peripheral), ('properties', properties)]
-        expand_template(
-                os.path.join(template_dir, 'peripheral.hpp.template'),
-                output_name, context_pairs=peripheral_context)
         output_headers.append(output_name)
 
-    write_final_header(properties, output_headers, out_directory)
+        if write_files:
+            peripheral_context = [('peripheral', peripheral), ('properties', properties)]
+            expand_template(
+                    os.path.join(template_dir, 'peripheral.hpp.template'),
+                    output_name, context_pairs=peripheral_context)
+            if verbose:
+                print('Wrote {}'.format(output_name))
+
+    out_name = os.path.join(out_directory, properties.find('name').string + '.hpp')
+    if write_files:
+        write_final_header(properties, output_headers, out_name)
+    output_headers.append(out_name)
+
+    return output_headers

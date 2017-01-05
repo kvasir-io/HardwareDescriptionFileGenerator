@@ -12,7 +12,12 @@ def padded_hex(n):
     return "{0:#0{1}x}".format(n,10)
 
 def has_group(io):
-    return 'group' in [x.string for x in io.find_all('type')]
+    #return 'group' in [x.string for x in io.find_all('type')]
+    if io.default:
+        if io.default.type:
+            return 'group' == io.default.type.string
+
+    return False
 
 def expand_ports(io):
     ports = io.find('ports').string
@@ -33,21 +38,22 @@ def port_number(port):
     return port
 
 # Technically this is a generic property function and should go in parser_utils
-def lookup(properties, key, name):
-    return [p for p in properties.find_all(key) if p.find('name') and p.find('name').string == name]
+def unique_lookup(properties, key, name, recursive=False):
+    # return properties.find_all(key, name=name)
+    result = [p for p in properties.find_all(key, recursive=recursive)
+            if p.find('name') and p.find('name').string == name]
+    if len(result) > 1:
+        raise RuntimeError('non-unique property found')
+    if len(result) == 0:
+        raise RuntimeError('no property named [' + name + '] found')
+    return result[0]
 
 def io_address(io, key, device, port):
     peripheral_name = io.find('peripheral').string.replace('%s', port)
     register_name = key.register.string
 
     # Get the peripheral with this name
-    peripheral = lookup(device, 'peripheral', peripheral_name)
-    if len(peripheral) > 1:
-        raise RuntimeError('non-unique peripheral found')
-    if len(peripheral) == 0:
-        raise RuntimeError('no peripheral named [' + peripheral_name + '] found')
-
-    peripheral = peripheral[0]
+    peripheral = unique_lookup(device.peripherals, 'peripheral', peripheral_name)
 
     base_address = int(peripheral.baseAddress.string, 0)
 
@@ -88,8 +94,8 @@ def reserved(io, key, device, port):
 
     reserved = 0xFFFFFFFF
 
-    peripheral = lookup(device, 'peripheral', peripheral_name)[0]
-    register = lookup(device, 'register', register_name)[0]
+    peripheral = unique_lookup(device.peripherals, 'peripheral', peripheral_name)
+    register = unique_lookup(peripheral.registers, 'register', register_name)
 
     for field in register.find_all('field'):
         clearBitsFromRange(int(field.bitOffset.string) + int(field.bitWidth.string) - 1,

@@ -8,7 +8,7 @@ namespace kvasir {
 @[if has_group(io)]@
 @[for key in io]@
 @{key_name = key.name}
-@[if key_name != 'default']@#  questionable
+@[if key_name != 'default']
 @[for port in expand_ports(io)]@
             template<int Pin>
             struct MakeAction<Action::@(key_name.capitalize()), Register::PinLocation<@(port_number(port)), Pin>> :
