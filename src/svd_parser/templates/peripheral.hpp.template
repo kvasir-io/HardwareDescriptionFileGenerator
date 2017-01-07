@@ -3,11 +3,11 @@
 namespace kvasir {
     namespace chip {
 @[if peripheral.description]@
-    // @(peripheral.description.string)
+    // @(get_str(peripheral.description))
 @[end if]@
 @[def emit_register(peripheral, reg, cluster)]@
 @{    reg_name = format_register_name(peripheral, reg) }@
-    namespace @(reg_name) {  @[if reg.description]/// @(reg.description.string)@[end if]
+    namespace @(reg_name) {  @[if reg.description]/// @(get_str(reg.description))@[end if]
         using Addr = Register::Address<@(register_address(peripheral, reg, cluster)),
                                        @(no_action_if_zero_bits(reg)),
                                        @(no_action_if_one_bits(reg)),
@@ -18,7 +18,7 @@ namespace kvasir {
 @[end if]@
 @[    for field in fields]@
 @[        if field.description]@
-        /// @(field.description.string)
+        /// @(get_str(field.description))
 @[        end if]@
 @{        field_name = format_field_name(field) }
 
@@ -27,7 +27,7 @@ namespace kvasir {
 @[            for v in field.find_all('enumeratedValue')]@
 @{                value_name = format_enum_value_name(v) }@
 @[                if value_name != 'reserved' and not is_default(v)]@
-            @(value_name)=@(format_enum_value(v)),@[if v.description]  /// @(v.description.string)@[end if]
+            @(value_name)=@(format_enum_value(v)),@[if v.description]  /// @(get_str(v.description))@[end if]
 @[                end if]@
 @[            end for]@
         };
@@ -37,7 +37,7 @@ namespace kvasir {
                                           Register::@(access(field)),
                                           @(field_name.capitalize())Val> @(field_name){};
 
-        namespace @(field.find('name').string.capitalize())ValC {
+        namespace @(get_str(field.find('name')).capitalize())ValC {
 @[            for v in field.find_all('enumeratedValues')]@
 @{ value_name = format_enum_value_name(v) }@
             constexpr Register::FieldValue<decltype(@(field_name))::Type,
@@ -50,7 +50,7 @@ namespace kvasir {
 @[end def]@
 
 @[for cluster in peripheral.find_all('cluster')]@
-@{ cluster_name = format_namespace(cluster.find('name').string) }@
+@{ cluster_name = format_namespace(get_str(cluster.find('name'))) }@
     namespace @(cluster_name) {
 @[for reg in cluster.find_all('register')]
 @{ print emit_register(peripheral, reg, cluster) }@

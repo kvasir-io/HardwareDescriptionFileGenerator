@@ -21,7 +21,7 @@ def has_group(io):
 
 
 def expand_ports(io):
-    ports = io.find('ports').string
+    ports = get_str(io.find('ports'))
 
     if ',' in ports:
         return ports.split(',')
@@ -53,8 +53,8 @@ def unique_lookup(properties, key, name, recursive=False):
 
 
 def io_address(io, key, device, port):
-    peripheral_name = io.find('peripheral').string.replace('%s', port)
-    register_name = key.register.string
+    peripheral_name = get_str(io.find('peripheral')).replace('%s', port)
+    register_name = get_str(key.register)
 
     # Get the peripheral with this name
     peripheral = unique_lookup(device.peripherals, 'peripheral', peripheral_name)
@@ -96,8 +96,8 @@ def setBitsFromRange(msb, lsb, previous=0):
 # device: tag
 # port: str
 def reserved(io, key, device, port):
-    peripheral_name = io.find('peripheral').string.replace('%s', port)
-    register_name = key.register.string
+    peripheral_name = get_str(io.find('peripheral')).replace('%s', port)
+    register_name = get_str(key.register)
 
     reserved = 0xFFFFFFFF
 
@@ -114,7 +114,7 @@ def reserved(io, key, device, port):
 def action(key):
     if key.name == 'read':
         return 'ReadAction'
-    return 'WriteLiteralAction<{0} << Pin>'.format(key.value.string)
+    return 'WriteLiteralAction<{0} << Pin>'.format(get_str(key.value))
 
 
 #### Registers
@@ -124,7 +124,7 @@ def format_namespace(x):
 
 
 def format_register_name(peripheral, reg):
-    x = peripheral.find('name').string + '_' + reg.find('name').string
+    x = get_str(peripheral.find('name')) + '_' + get_str(reg.find('name'))
     return format_namespace(x)
 
 
@@ -179,16 +179,16 @@ def dash_to_camel_case(x):
 def access(field):
     modified_write_values = 'normal'
     if field.modifiedWriteValues:
-        modified_write_values = field.modifiedWriteValues.string
+        modified_write_values = get_str(field.modifiedWriteValues)
 
     read_action = 'normal'
     if field.readAction:
-        read_action = field.readAction.string
+        read_action = get_str(field.readAction)
 
     access = 'read-write'
     if field.access:
-        access = field.access.string
-        access = dash_to_camel_case(field.access.string)
+        access = get_str(field.access)
+        access = dash_to_camel_case(get_str(field.access))
 
     access = access[0].lower() + access[1:]
 
@@ -201,7 +201,7 @@ def access(field):
 def parse_bit_range(bit_range):
     if (len(bit_range.string) < 5):
         raise RuntimeError('bitRange field contained insufficient characters')
-    return bit_range.string[1:-1].split(':')
+    return get_str(bit_range)[1:-1].split(':')
 
 
 def msb(field):
@@ -269,14 +269,14 @@ def format_variable(v):
 
 
 def format_enum_value_name(v):
-    value = v.find('name').string
+    value = get_str(v.find('name'))
     if value[:1].isdigit():
         value = 'v' + value
     return format_variable(value)
 
 
 def format_enum_value(v):
-    value = v.value.string
+    value = get_str(v.value)
     # Freescale nonsense
     if value.startswith('#'):
         if 'x' in value:
@@ -287,10 +287,18 @@ def format_enum_value(v):
 
 
 def is_default(v):
-    if v.isDefault:
-        return True
+    return v.isDefault
 
 
 # Make sure to filter out C++ keywords
 def format_field_name(field):
-    return format_variable(field.find('name').string)
+    return format_variable(get_str(field.find('name')))
+
+
+def get_str(prop):
+    if prop:
+        if prop.string:
+            # Strip the unicde characters
+            stripped = ''.join(c for c in prop.string if ord(c) < 128)
+            return stripped
+    return ''
