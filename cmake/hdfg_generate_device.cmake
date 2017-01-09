@@ -16,14 +16,24 @@ function(hdfg_generate_device input_file output_directory)
   set(module_directory ${CMAKE_SOURCE_DIR}/src/svd_parser)
 
   hdfg_parse_device_name(${input_file} device_name)
+  # MESSAGE(STATUS "generating code for ${device_name}")
 
   # Split on .
-  add_custom_target(
-    ${device_name}_generated
-    ALL
+  add_custom_command(
+    OUTPUT ${device_name}_generated_
     COMMAND ${PYTHON_EXECUTABLE} ${module_directory}/parse_device.py ${input_file} ${output_directory} ${extension_filename}
+    COMMAND ${CMAKE_COMMAND} -E touch ${device_name}_generated_
+    DEPENDS ${input_file} ${extension_filename}
+    ${module_directory}/parse_device.py
+    ${module_directory}/parser_utils.py
+    ${module_directory}/format_utils.py
+    ${module_directory}/templates/io.hpp.template
+    ${module_directory}/templates/peripheral.hpp.template
   )
 
-  #install(TARGETS _generated)
+  add_custom_target(${device_name}_generated DEPENDS ${device_name}_generated_)
+
+  # add_executable(test_headers_${device_name} /tmp/test_headers.cpp)
+  # add_dependencies(test_headers_${device_name} ${device_name}_generated)
 endfunction()
 

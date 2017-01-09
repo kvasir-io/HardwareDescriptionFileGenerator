@@ -9,6 +9,8 @@ include(cmake/hdfg_generate_targets_for_directory.cmake)
 find_package(PythonInterp)
 
 # TODO Filtering options? What should the interface look like?
-hdfg_generate_targets_for_directory("data" ${CMAKE_CURRENT_BINARY_DIR})
+hdfg_generate_targets_for_directory("data" ${CMAKE_BINARY_DIR}/include)
 
-# Test: try to compile all of the resulting targets
+if(${BUILD_TESTING})
+  add_subdirectory(test)
+endif()
