@@ -1,7 +1,7 @@
 #pragma once
 #include <Register/Utility.hpp>
-namespace kvasir {
-    namespace chip {
+namespace Kvasir {
+    namespace Chip {
 @[if peripheral.description]@
     // @(get_str(peripheral.description))
 @[end if]@
@@ -61,5 +61,5 @@ namespace kvasir {
 @[for reg in peripheral.find_all('register', limit=1)]@
 @{ print emit_register(peripheral, reg, None) }@
 @[end for]@
-    }  // namespace chip
-}  // namespace kvasir
+    }  // namespace Chip
+}  // namespace Kvasir

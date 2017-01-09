@@ -185,7 +185,7 @@ def access(field):
     if field.readAction:
         read_action = get_str(field.readAction)
 
-    access = 'read-write'
+    access = 'readWrite'
     if field.access:
         access = get_str(field.access)
         access = dash_to_camel_case(get_str(field.access))
@@ -297,8 +297,8 @@ def format_field_name(field):
 
 def get_str(prop):
     if prop:
-        if prop.string:
+        if hasattr(prop, 'string') and prop.string:
             # Strip the unicde characters
             stripped = ''.join(c for c in prop.string if ord(c) < 128)
             return stripped
-    return ''
+    return prop

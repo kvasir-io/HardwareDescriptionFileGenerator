@@ -2,9 +2,9 @@
 #pragma once
 #include <Io/Io.hpp>
 #include <Register/Register.hpp>
-namespace kvasir {
-     namespace chip {
-        namespace io {
+namespace Kvasir {
+     namespace Chip {
+        namespace Io {
 @[if has_group(io)]@
 @[for key in io]@
 @{key_name = key.name}
@@ -20,6 +20,6 @@ namespace kvasir {
 @[end if]@
 @[end for]@
 @[end if]@
-        }  // namespace io
-    }  // namespace chip
-}  // namespace kvasir
+        }  // namespace Io
+    }  // namespace Chip
+}  // namespace Kvasir
