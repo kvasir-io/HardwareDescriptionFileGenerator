@@ -3,11 +3,11 @@
 namespace Kvasir {
     namespace Chip {
 @[if peripheral.description]@
-    // @(get_str(peripheral.description))
+    /* @(get_str(peripheral.description)) */
 @[end if]@
 @[def emit_register(peripheral, reg, cluster)]@
 @{    reg_name = format_register_name(peripheral, reg) }@
-    namespace @(reg_name) {  @[if reg.description]/// @(get_str(reg.description))@[end if]
+    namespace @(reg_name) {  @[if reg.description]/* @(get_str(reg.description)) */@[end if]
         using Addr = Register::Address<@(register_address(peripheral, reg, cluster)),
                                        @(no_action_if_zero_bits(reg)),
                                        @(no_action_if_one_bits(reg)),
@@ -16,9 +16,11 @@ namespace Kvasir {
 @[if len(fields) == 0]@
 @{    fields.append(expand_register_as_field(reg, properties))}@
 @[end if]@
+// TODO Fields are totally broken (for bit offsets, it seems)
+// TODO compare some of the STMicro and nordic headers with existing
 @[    for field in fields]@
 @[        if field.description]@
-        /// @(get_str(field.description))
+        /* @(get_str(field.description)) */
 @[        end if]@
 @{        field_name = format_field_name(field) }
 
@@ -27,7 +29,7 @@ namespace Kvasir {
 @[            for v in field.find_all('enumeratedValue')]@
 @{                value_name = format_enum_value_name(v) }@
 @[                if value_name != 'reserved' and not is_default(v)]@
-            @(value_name)=@(format_enum_value(v)),@[if v.description]  /// @(get_str(v.description))@[end if]
+            @(value_name)=@(format_enum_value(v)),@[if v.description]  /* @(get_str(v.description)) */@[end if]
 @[                end if]@
 @[            end for]@
         };
@@ -38,7 +40,7 @@ namespace Kvasir {
                                           @(field_name.capitalize())Val> @(field_name){};
 
         namespace @(get_str(field.find('name')).capitalize())ValC {
-@[            for v in field.find_all('enumeratedValues')]@
+@[            for v in field.find_all('enumeratedValue')]@
 @{ value_name = format_enum_value_name(v) }@
             constexpr Register::FieldValue<decltype(@(field_name))::Type,
                                           @(field_name.capitalize())Val::@(value_name)> @(value_name){};

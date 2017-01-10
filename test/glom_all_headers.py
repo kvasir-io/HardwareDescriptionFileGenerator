@@ -10,7 +10,7 @@ if len(sys.argv) < 3:
 # 1 header per device.
 # in_path specifies where the cmsis_svd files are
 out_path = sys.argv[1]
-headers = sys.argv[2:]
+headers = sys.argv[2]
 
 out_dir = os.path.dirname(out_path)
 if not os.path.exists(out_dir):
@@ -18,4 +18,3 @@ if not os.path.exists(out_dir):
 
 template_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'templates')
 parser_utils.expand_template(os.path.join(template_dir, 'test_headers.hpp.template'), out_path, [('headers', headers)])
-

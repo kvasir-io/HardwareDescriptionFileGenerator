@@ -59,7 +59,8 @@ def io_address(io, key, device, port):
     # Get the peripheral with this name
     peripheral = unique_lookup(device.peripherals, 'peripheral', peripheral_name)
 
-    base_address = int(peripheral.baseAddress.string, 0)
+    base_address = get_base_address(peripheral)
+
 
     if base_address is None:
         raise RuntimeError(
@@ -128,13 +129,23 @@ def format_register_name(peripheral, reg):
     return format_namespace(x)
 
 
+def get_base_address(peripheral):
+    base_address = int(peripheral.baseAddress.string, 0)
+    if peripheral.addressBlock:
+        base_address = int(peripheral.addressBlock.offset.string, 0)
+    return base_address
+
 def register_address(peripheral, register, cluster):
+    # TODO This is wrong I think? 
+    # the offset relative to the peripheral is set by addressBlock.offset
+    # Need to check if that element exists
+    base_address = get_base_address(peripheral)
     if cluster:
-        return padded_hex(int(peripheral.baseAddress.string, 0)
+        return padded_hex(base_address
                 + int(cluster.addressOffset.string, 0)
                 + int(register.addressOffset.string, 0))
 
-    return padded_hex(int(peripheral.baseAddress.string, 0)
+    return padded_hex(base_address
                 + int(register.addressOffset.string, 0))
 
 

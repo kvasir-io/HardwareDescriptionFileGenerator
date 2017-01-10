@@ -1,4 +1,1 @@
-@[for header in headers]
-#include "@(header)"
-@[end for]
-
+#include "@(headers)"
