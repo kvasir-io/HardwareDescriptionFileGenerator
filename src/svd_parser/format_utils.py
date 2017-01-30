@@ -6,13 +6,11 @@ import re
 #### IO
 
 def padded_hex(n):
-    # int n
     # return hex-encoded string with 8 digits
     return "{0:#0{1}x}".format(n, 10)
 
 
 def has_group(io):
-    #return 'group' in [x.string for x in io.find_all('type')]
     if io.default:
         if io.default.type:
             return 'group' == io.default.type.string
@@ -42,7 +40,6 @@ def port_number(port):
 
 # Technically this is a generic property function and should go in parser_utils
 def unique_lookup(properties, key, name, recursive=False):
-    # return properties.find_all(key, name=name)
     result = [p for p in properties.find_all(key, recursive=recursive)
             if p.find('name') and p.find('name').string == name]
     if len(result) > 1:
@@ -120,6 +117,7 @@ def action(key):
 
 #### Registers
 def format_namespace(x):
+    # TODO This strips out the underscore, which we might actually want
     r = re.compile('[^a-zA-Z0-9_]')
     return reduce(add, map(lambda s: s.lower(), r.sub('', x).lower().split('_')))
 
@@ -273,11 +271,8 @@ def no_action_if_one_bits(register):
 
 
 def use_enumerated_values(field):
-    #if len(field.find_all('enumeratedValue')) > 4 or int(field.bitWidth.string) <= 2:
-    # TODO there's a workaround we're missing here?
-    if len(field.find_all('enumeratedValue')) > 4:
-        return True
-    return False
+    # TODO: I think there's a workaround we're missing here
+    return len(field.find_all('enumeratedValue')) > 1
 
 
 def format_variable(v):

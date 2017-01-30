@@ -16,8 +16,6 @@ namespace Kvasir {
 @[if len(fields) == 0]@
 @{    fields.append(expand_register_as_field(reg, properties))}@
 @[end if]@
-// TODO Fields are totally broken (for bit offsets, it seems)
-// TODO compare some of the STMicro and nordic headers with existing
 @[    for field in fields]@
 @[        if field.description]@
         /* @(get_str(field.description)) */
