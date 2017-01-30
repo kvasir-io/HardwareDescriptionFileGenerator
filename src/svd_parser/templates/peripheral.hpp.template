@@ -46,6 +46,7 @@ namespace Kvasir {
                                           @(field_name.capitalize())Val::@(value_name)> @(value_name){};
 @[            end for]@
         }  // @(field_name.capitalize())ValC
+@[        else]@
 @[        end if]@
 @[    end for]@
     }  // namespace @(reg_name)
@@ -60,7 +61,7 @@ namespace Kvasir {
     }  // namespace @(cluster_name)
 @[end for]@
 
-@[for reg in peripheral.find_all('register', limit=1)]@
+@[for reg in get_registers(peripheral)]@
 @{ print emit_register(peripheral, reg, None) }@
 @[end for]@
     }  // namespace Chip

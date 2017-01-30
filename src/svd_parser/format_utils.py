@@ -130,6 +130,7 @@ def format_register_name(peripheral, reg):
 
 
 def get_base_address(peripheral):
+    # TODO definitely weird. need to double-check with schema; addressBlock and baseAddress disagree sometimes
     base_address = int(peripheral.baseAddress.string, 0)
     if peripheral.addressBlock:
         base_address = int(peripheral.addressBlock.offset.string, 0)
@@ -140,14 +141,32 @@ def register_address(peripheral, register, cluster):
     # the offset relative to the peripheral is set by addressBlock.offset
     # Need to check if that element exists
     base_address = get_base_address(peripheral)
+    registerOffset = 0
+
     if cluster:
         return padded_hex(base_address
                 + int(cluster.addressOffset.string, 0)
                 + int(register.addressOffset.string, 0))
 
+    if register.addressOffset is None:
+        return padded_hex(base_address)
+
     return padded_hex(base_address
                 + int(register.addressOffset.string, 0))
 
+def get_registers(peripheral):
+    # get all the registers for this peripheral
+    import bs4.element
+    registers = peripheral.find('registers')
+    out = []
+    if registers is None:
+        return out
+    for register in registers:
+        if register is None or not type(register) == bs4.element.Tag:
+            continue
+        out.append(register)
+
+    return out
 
 def register_type(register):
     # TODO What if register.size is hex
@@ -309,7 +328,7 @@ def format_field_name(field):
 def get_str(prop):
     if prop:
         if hasattr(prop, 'string') and prop.string:
-            # Strip the unicde characters
+            # Strip the unicode characters
             stripped = ''.join(c for c in prop.string if ord(c) < 128)
             return stripped
-    return prop
+    return ''

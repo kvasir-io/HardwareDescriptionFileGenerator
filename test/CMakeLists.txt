@@ -6,7 +6,6 @@ file(GLOB_RECURSE svd_files "${CMAKE_SOURCE_DIR}/data/*.svd")
 
 foreach(svd_file ${svd_files})
   hdfg_parse_device_name(${svd_file} device_name)
-  # list(APPEND headers "${device_name}.hpp")
   add_custom_target(
     test_headers_generated_${device_name}
     ALL
