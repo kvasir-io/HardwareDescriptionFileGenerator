@@ -128,29 +128,21 @@ def format_register_name(peripheral, reg):
 
 
 def get_base_address(peripheral):
-    # TODO definitely weird. need to double-check with schema; addressBlock and baseAddress disagree sometimes
-    base_address = int(peripheral.baseAddress.string, 0)
-    if peripheral.addressBlock:
-        base_address = int(peripheral.addressBlock.offset.string, 0)
-    return base_address
+    return int(peripheral.baseAddress.string, 0)
 
 def register_address(peripheral, register, cluster):
-    # TODO This is wrong I think? 
-    # the offset relative to the peripheral is set by addressBlock.offset
-    # Need to check if that element exists
     base_address = get_base_address(peripheral)
     registerOffset = 0
+    if not register.addressOffset is None:
+        registerOffset = int(register.addressOffset.string, 0)
 
-    if cluster:
+    if cluster and not cluster.addressOffset is None:
         return padded_hex(base_address
                 + int(cluster.addressOffset.string, 0)
-                + int(register.addressOffset.string, 0))
-
-    if register.addressOffset is None:
-        return padded_hex(base_address)
+                + registerOffset)
 
     return padded_hex(base_address
-                + int(register.addressOffset.string, 0))
+                + registerOffset)
 
 def get_registers(peripheral):
     # get all the registers for this peripheral
@@ -255,10 +247,11 @@ def lsb(field):
 
 
 def no_action_if_zero_bits(register):
+    # TODO This looks wrong
     no_action = 0xFFFFFFFF
-    for field in register.find_all('fields'):
+    for field in register.find_all('field'):
         if 'oneTo' not in access(field):
-            clearBitsFromRange(msb(field), lsb(field), no_action)
+            no_action = clearBitsFromRange(msb(field), lsb(field), no_action)
     return padded_hex(no_action)
 
 
@@ -266,7 +259,7 @@ def no_action_if_one_bits(register):
     no_action = 0x00000000
     for field in register.find_all('fields'):
         if 'zeroTo' in access(field):
-            setBitsFromRange(msb(field), lsb(field), no_action)
+            no_action = setBitsFromRange(msb(field), lsb(field), no_action)
     return padded_hex(no_action)
 
 
