@@ -247,7 +247,6 @@ def lsb(field):
 
 
 def no_action_if_zero_bits(register):
-    # TODO This looks wrong
     no_action = 0xFFFFFFFF
     for field in register.find_all('field'):
         if 'oneTo' not in access(field):
