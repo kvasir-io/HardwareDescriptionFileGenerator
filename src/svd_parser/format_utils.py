@@ -119,7 +119,8 @@ def action(key):
 def format_namespace(x):
     # TODO This strips out the underscore, which we might actually want
     r = re.compile('[^a-zA-Z0-9_]')
-    return reduce(add, map(lambda s: s.lower(), r.sub('', x).lower().split('_')))
+    # return reduce(add, map(lambda s: s.lower(), r.sub('', x).lower().split('_')))
+    return '_'.join(map(lambda s: s.lower(), r.sub('', x).lower().split('_')))
 
 
 def format_register_name(peripheral, reg):
@@ -136,13 +137,15 @@ def register_address(peripheral, register, cluster):
     if not register.addressOffset is None:
         registerOffset = int(register.addressOffset.string, 0)
 
-    if cluster and not cluster.addressOffset is None:
-        return padded_hex(base_address
-                + int(cluster.addressOffset.string, 0)
-                + registerOffset)
+    address = base_address + registerOffset
 
-    return padded_hex(base_address
-                + registerOffset)
+    if cluster and not cluster.addressOffset is None:
+        address += int(cluster.addressOffset.string, 0)
+
+    if address > 2**32 - 1:
+        return "static_cast<" + register_type(register) + ">(" + padded_hex(address) + ")"
+
+    return padded_hex(address)
 
 def get_registers(peripheral):
     # get all the registers for this peripheral
@@ -152,7 +155,7 @@ def get_registers(peripheral):
     if registers is None:
         return out
     for register in registers:
-        if register is None or not type(register) == bs4.element.Tag:
+        if register is None or not type(register) == bs4.element.Tag or not register.name == 'register':
             continue
         out.append(register)
 
@@ -269,14 +272,14 @@ def use_enumerated_values(field):
 
 def format_variable(v):
     #all c++ keywords
-    cppKeywords = ['alignas', 'alignof', 'and', 'asm', 'auto', 'bitand', 'bitor', 'bool', 'break', 'case', \
+    cppKeywords = set(['alignas', 'alignof', 'and', 'asm', 'auto', 'bitand', 'bitor', 'bool', 'break', 'case', \
     'catch', 'char', 'class', 'compl', 'concept', 'const', 'constexpr', 'continue', 'decltype', 'default', \
-    'delete', 'do', 'double', 'else', 'enum', 'explicit', 'export', 'extern', 'false', 'float', 'for' \
-    'friend', 'goto', 'if', 'inline', 'int', 'long', 'mutable', 'namespace', 'new', 'noexcept', 'not' \
-    'nullptr', 'operator', 'or', 'private', 'protected', 'public', 'register', 'requires', 'return' \
-    'short', 'signed', 'sizeof', 'static', 'struct', 'switch', 'template', 'this', 'throw', 'true' \
+    'delete', 'do', 'double', 'else', 'enum', 'explicit', 'export', 'extern', 'false', 'float', 'for', \
+    'friend', 'goto', 'if', 'inline', 'int', 'long', 'mutable', 'namespace', 'new', 'noexcept', 'not', \
+    'nullptr', 'operator', 'or', 'private', 'protected', 'public', 'register', 'requires', 'return', \
+    'short', 'signed', 'sizeof', 'static', 'struct', 'switch', 'template', 'this', 'throw', 'true', \
     'try', 'typedef', 'typeid', 'typename', 'union', 'unsigned', 'using', 'virtual', 'void', 'volatile' \
-    'while', 'xor']
+    'while', 'xor'])
 
     out = format_namespace(v)
     out = out[:1].lower() + out[1:]

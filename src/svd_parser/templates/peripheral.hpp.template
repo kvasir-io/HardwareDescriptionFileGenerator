@@ -23,7 +23,7 @@ namespace Kvasir {
 @{        field_name = format_field_name(field) }
 
 @[        if use_enumerated_values(field)]@
-        enum class @(field_name.capitalize())Val : unsigned {
+        enum class @(field_name.capitalize())Val : @(register_type(reg)) {
 @[            for v in field.find_all('enumeratedValue')]@
 @{                value_name = format_enum_value_name(v) }@
 @[                if value_name != 'reserved' and not is_default(v)]@
@@ -40,7 +40,11 @@ namespace Kvasir {
         namespace @(get_str(field.find('name')).capitalize())ValC {
 @[            for v in field.find_all('enumeratedValue')]@
 @{ value_name = format_enum_value_name(v) }@
-            constexpr Register::FieldValue<decltype(@(field_name))::Type,
+@{              outer_namespace = reg_name}@
+@[              if cluster]@
+@{              outer_namespace = format_namespace(get_str(cluster.find('name'))) + '::' + reg_name}@
+@[              end if]@
+            constexpr Register::FieldValue<decltype(@(outer_namespace)::@(field_name))::Type,
                                           @(field_name.capitalize())Val::@(value_name)> @(value_name){};
 @[            end for]@
         }  // @(field_name.capitalize())ValC
