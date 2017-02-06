@@ -1,0 +1,3 @@
+[submodule "deps/Kvasir"]
+	path = deps/Kvasir
+	url = git@github.com:kvasir-io/Kvasir.git

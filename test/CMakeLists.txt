@@ -18,10 +18,9 @@ foreach(svd_file ${svd_files})
     add_executable(test_headers_${device_name} test_headers.cpp)
     add_dependencies(test_headers_${device_name} test_headers_generated_${device_name})
     add_dependencies(test_headers_${device_name} ${device_name}_generated)
-    target_include_directories(test_headers_${device_name} PUBLIC ${CMAKE_BINARY_DIR}/include ${CMAKE_BINARY_DIR}/Lib ${CMAKE_CURRENT_BINARY_DIR}/${device_name}/)
+    target_include_directories(test_headers_${device_name} PUBLIC
+      ${CMAKE_BINARY_DIR}/include ${CMAKE_SOURCE_DIR}/deps/Lib ${CMAKE_CURRENT_BINARY_DIR}/${device_name}/)
     target_compile_options(test_headers_${device_name} PUBLIC "-std=c++11")
   endif()
 
 endforeach()
-
-# TODO Install kvasir
