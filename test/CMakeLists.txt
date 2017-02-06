@@ -12,7 +12,7 @@ foreach(svd_file ${svd_files})
     add_custom_target(
       test_headers_generated_${device_name}
       ALL
-      COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_LIST_DIR}/glom_all_headers.py
+      COMMAND python2 ${CMAKE_CURRENT_LIST_DIR}/glom_all_headers.py
       ${CMAKE_CURRENT_BINARY_DIR}/${device_name}/test_headers.hpp ${device_name}.hpp)
 
     add_executable(test_headers_${device_name} test_headers.cpp)

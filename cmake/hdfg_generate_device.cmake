@@ -24,7 +24,7 @@ function(hdfg_generate_device input_file output_directory)
   # Split on .
   add_custom_command(
     OUTPUT ${device_name}_generated_
-    COMMAND ${PYTHON_EXECUTABLE} ${module_directory}/parse_device.py ${input_file} ${output_directory} ${extension_filename}
+    COMMAND python2 ${module_directory}/parse_device.py ${input_file} ${output_directory} ${extension_filename}
     COMMAND ${CMAKE_COMMAND} -E touch ${device_name}_generated_
     DEPENDS ${input_file} ${extension_filename}
     ${module_directory}/parse_device.py
