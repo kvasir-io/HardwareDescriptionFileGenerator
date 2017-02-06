@@ -18,6 +18,9 @@ function(hdfg_generate_device input_file output_directory)
   hdfg_parse_device_name(${input_file} device_name)
   # MESSAGE(STATUS "generating code for ${device_name}")
 
+  if(TARGET ${device_name}_generated)
+    message(WARNING "Tried to add target ${device_name}_generated which already exists.")
+  else()
   # Split on .
   add_custom_command(
     OUTPUT ${device_name}_generated_
@@ -30,10 +33,9 @@ function(hdfg_generate_device input_file output_directory)
     ${module_directory}/templates/io.hpp.template
     ${module_directory}/templates/peripheral.hpp.template
   )
-
-  add_custom_target(${device_name}_generated DEPENDS ${device_name}_generated_)
+    add_custom_target(${device_name}_generated DEPENDS ${device_name}_generated_)
+  endif()
 
   # add_executable(test_headers_${device_name} /tmp/test_headers.cpp)
   # add_dependencies(test_headers_${device_name} ${device_name}_generated)
 endfunction()
-
