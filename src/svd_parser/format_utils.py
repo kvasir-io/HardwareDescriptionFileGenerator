@@ -1,5 +1,6 @@
 from functools import reduce
 from operator import add
+import math
 import re
 
 ######## CMSIS SVD-specific formatting utilities
@@ -143,6 +144,7 @@ def register_address(peripheral, register, cluster):
         address += int(cluster.addressOffset.string, 0)
 
     if address > 2**32 - 1:
+        # TODO This is a dumb workaround
         return "static_cast<" + register_type(register) + ">(" + padded_hex(address) + ")"
 
     return padded_hex(address)
@@ -151,15 +153,35 @@ def get_registers(peripheral):
     # get all the registers for this peripheral
     import bs4.element
     registers = peripheral.find('registers')
-    out = []
+    out = {}
     if registers is None:
         return out
     for register in registers:
         if register is None or not type(register) == bs4.element.Tag or not register.name == 'register':
             continue
-        out.append(register)
+        # Check for alternateGroup and alternateRegister here
+        #if register.alternateRegister:
+        #    redefined_name = register.alternateRegister.string
+        #    assert redefined_name in out
+        # Intentional redefinition of previous register
+        register_name = register.find('name')
+        if register_name in out:
+            if register.alternateGroup:
+                # Intentional redefinition of previous register
+                # Append fields to existing register
+                # This will create valid typedefs
+                out[register_name] = append_fields(out[register_name], register)
+        else:
+            out[register.find('name')] = register
 
-    return out
+    return out.values()
+
+def append_fields(dst, src):
+    if dst.find('fields') is None:
+        return dst
+    for field in src.find_all('field'):
+        dst.find('fields').append(field)
+    return dst
 
 def register_type(register):
     # TODO What if register.size is hex
@@ -184,9 +206,21 @@ def expand_register_as_field(register, root):
     # TODO This could be a bit more succinct.
     field_tag = root.new_tag('field')
     register.append(field_tag)
+
     bitwidth = root.new_tag('bitWidth')
     field_tag.append(bitwidth)
-    bitwidth.string = '8'  # TODO don't hardcode this?
+    bitwidth.string = '8'  # TODO don't hardcode this? actually, is this correct?
+
+    bitoffset = root.new_tag('bitOffset')
+    field_tag.append(bitoffset)
+    # TODO Get bitoffset based on the address offset
+    address_offset = int(register.addressOffset.string, 0)
+    lsb = 0
+    if address_offset > 0:
+        lsb = int(math.log(address_offset & -address_offset, 2))
+
+    bitoffset.string = str(lsb)
+
     for child in register:
         if child.name in register_to_keys:
             child_tag = root.new_tag(register_to_keys[child.name])
@@ -229,7 +263,7 @@ def parse_bit_range(bit_range):
 
 def msb(field):
     if field.bitOffset and field.bitWidth:
-        return int(field.bitOffset.string, 0) + int(field.bitWidth.string, 0) - 1
+        return int(field.bitOffset.string, 0) + int(field.bitWidth.string, 0)
     elif field.bitRange:
         return int(parse_bit_range(field.bitRange)[0], 0)
     elif field.msb:

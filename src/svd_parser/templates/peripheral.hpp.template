@@ -49,6 +49,10 @@ namespace Kvasir {
 @[            end for]@
         }  // @(field_name.capitalize())ValC
 @[        else]@
+        constexpr Register::FieldLocation<Addr,
+                                          Register::maskFromRange(@(msb(field)), @(lsb(field))),
+                                          Register::@(access(field)),
+                                          @(register_type(reg))> @(field_name){};
 @[        end if]@
 @[    end for]@
     }  // namespace @(reg_name)
