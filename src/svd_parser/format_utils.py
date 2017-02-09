@@ -39,6 +39,20 @@ def port_number(port):
     return port
 
 
+def sanitize_int(s, base=0):
+    # Find the consecutive leading zeros and strip them
+    c = s[0]
+    i = 0
+    while c == '0' and i < len(s) - 1:
+        i += 1
+        c = s[i]
+
+    if (c == 'x' or c == 'X') and i > 0:
+        i -= 1
+
+    return int(s[i:], base)
+
+
 # Technically this is a generic property function and should go in parser_utils
 def unique_lookup(properties, key, name, recursive=False):
     result = [p for p in properties.find_all(key, recursive=recursive)
@@ -68,7 +82,7 @@ def io_address(io, key, device, port):
     address_offset = None
     for register in peripheral.find_all('register'):
         if register.find('name').string == register_name:
-            address_offset = int(register.addressOffset.string, 0)
+            address_offset = sanitize_int(register.addressOffset.string, 0)
             break
 
     if address_offset is None:
@@ -104,8 +118,8 @@ def reserved(io, key, device, port):
     register = unique_lookup(peripheral.registers, 'register', register_name)
 
     for field in register.find_all('field'):
-        clearBitsFromRange(int(field.bitOffset.string) + int(field.bitWidth.string) - 1,
-                int(field.bitOffset.string),
+        clearBitsFromRange(sanitize_int(field.bitOffset.string) + sanitize_int(field.bitWidth.string) - 1,
+                sanitize_int(field.bitOffset.string),
                 reserved)
     return padded_hex(reserved)
 
@@ -130,18 +144,18 @@ def format_register_name(peripheral, reg):
 
 
 def get_base_address(peripheral):
-    return int(peripheral.baseAddress.string, 0)
+    return sanitize_int(peripheral.baseAddress.string, 0)
 
 def register_address(peripheral, register, cluster):
     base_address = get_base_address(peripheral)
     registerOffset = 0
     if not register.addressOffset is None:
-        registerOffset = int(register.addressOffset.string, 0)
+        registerOffset = sanitize_int(register.addressOffset.string, 0)
 
     address = base_address + registerOffset
 
     if cluster and not cluster.addressOffset is None:
-        address += int(cluster.addressOffset.string, 0)
+        address += sanitize_int(cluster.addressOffset.string, 0)
 
     if address > 2**32 - 1:
         # TODO This is a dumb workaround
@@ -185,7 +199,7 @@ def append_fields(dst, src):
 
 def register_type(register):
     # TODO What if register.size is hex
-    if register.size and int(register.size.string, 0) is 8:
+    if register.size and sanitize_int(register.size.string, 0) is 8:
         return 'unsigned char'
     return 'unsigned'
 
@@ -214,7 +228,7 @@ def expand_register_as_field(register, root):
     bitoffset = root.new_tag('bitOffset')
     field_tag.append(bitoffset)
     # TODO Get bitoffset based on the address offset
-    address_offset = int(register.addressOffset.string, 0)
+    address_offset = sanitize_int(register.addressOffset.string, 0)
     lsb = 0
     if address_offset > 0:
         lsb = int(math.log(address_offset & -address_offset, 2))
@@ -249,6 +263,9 @@ def access(field):
 
     access = access[0].lower() + access[1:]
 
+    if access.lower() == 'readwriteonce':
+        access = 'readWriteOnce'
+
     if access == 'readWrite' and modified_write_values == 'normal' and read_action == 'normal':
         return 'ReadWriteAccess'
     return 'Access<Register::AccessType::%s,Register::ReadActionType::%s,Register::ModifiedWriteValueType::%s>' % (
@@ -263,22 +280,22 @@ def parse_bit_range(bit_range):
 
 def msb(field):
     if field.bitOffset and field.bitWidth:
-        return int(field.bitOffset.string, 0) + int(field.bitWidth.string, 0)
+        return sanitize_int(field.bitOffset.string, 0) + sanitize_int(field.bitWidth.string, 0) - 1
     elif field.bitRange:
-        return int(parse_bit_range(field.bitRange)[0], 0)
+        return sanitize_int(parse_bit_range(field.bitRange)[0], 0)
     elif field.msb:
-        return int(field.msb.string, 0)
+        return sanitize_int(field.msb.string, 0)
     else:
         raise RuntimeError('Bit offset/width style was not specified in field: ' + field.__str__())
 
 
 def lsb(field):
     if field.bitOffset and field.bitWidth:
-        return int(field.bitOffset.string, 0)
+        return sanitize_int(field.bitOffset.string, 0)
     elif field.bitRange:
-        return int(parse_bit_range(field.bitRange)[1], 0)
+        return sanitize_int(parse_bit_range(field.bitRange)[1], 0)
     elif field.lsb:
-        return int(field.lsb.string, 0)
+        return sanitize_int(field.lsb.string, 0)
     else:
         raise RuntimeError('Bit offset/width style was not specified')
 
@@ -336,8 +353,8 @@ def format_enum_value(v):
         if 'x' in value:
             value = value.replace('x', '0')
         # Encode as binary
-        return padded_hex(int(value[1:], 2))
-    return padded_hex(int(value, 0))
+        return padded_hex(sanitize_int(value[1:], 2))
+    return padded_hex(sanitize_int(value, 0))
 
 
 def is_default(v):

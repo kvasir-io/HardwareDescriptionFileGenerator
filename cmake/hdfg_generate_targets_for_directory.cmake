@@ -5,8 +5,14 @@
 
 include(cmake/hdfg_generate_device.cmake)
 
-function(hdfg_generate_targets_for_directory input_dir target_dir)
-  file(GLOB_RECURSE svd_files "${input_dir}/*.svd")
+# TODO Change input_dir so it could be a list of dirs or individual files
+function(hdfg_generate_targets_for_directory)
+  list(LENGTH ARGN list_length)
+  math(EXPR index "${list_length} - 1")
+  list(GET ARGN ${index} target_dir)
+  list(REMOVE_AT ARGN ${index})
+  set(svd_files ${ARGN})
+
   foreach(svd_file ${svd_files})
     hdfg_parse_device_name(${svd_file} device_name)
 

@@ -21,18 +21,18 @@ function(hdfg_generate_device input_file output_directory)
   if(TARGET ${device_name}_generated)
     message(WARNING "Tried to add target ${device_name}_generated which already exists.")
   else()
-  # Split on .
-  add_custom_command(
-    OUTPUT ${device_name}_generated_
-    COMMAND python2 ${module_directory}/parse_device.py ${input_file} ${output_directory} ${extension_filename}
-    COMMAND ${CMAKE_COMMAND} -E touch ${device_name}_generated_
-    DEPENDS ${input_file} ${extension_filename}
-    ${module_directory}/parse_device.py
-    ${module_directory}/parser_utils.py
-    ${module_directory}/format_utils.py
-    ${module_directory}/templates/io.hpp.template
-    ${module_directory}/templates/peripheral.hpp.template
-  )
+    # Split on .
+    add_custom_command(
+      OUTPUT ${device_name}_generated_
+      COMMAND python2 ${module_directory}/parse_device.py ${input_file} ${output_directory} ${extension_filename}
+      COMMAND ${CMAKE_COMMAND} -E touch ${device_name}_generated_
+      DEPENDS ${input_file} ${extension_filename}
+      ${module_directory}/parse_device.py
+      ${module_directory}/parser_utils.py
+      ${module_directory}/format_utils.py
+      ${module_directory}/templates/io.hpp.template
+      ${module_directory}/templates/peripheral.hpp.template
+    )
     add_custom_target(${device_name}_generated DEPENDS ${device_name}_generated_)
   endif()
 endfunction()

@@ -1,5 +1,5 @@
 # If testing is enabled
-# For each generated header, add this test target (has dependency on all generated targets
+# For each generated header, add this test target (has dependency on all generated targets)
 # Then compile the target
 
 file(GLOB_RECURSE svd_files "${CMAKE_SOURCE_DIR}/data/*.svd")
@@ -8,7 +8,7 @@ foreach(svd_file ${svd_files})
   hdfg_parse_device_name(${svd_file} device_name)
   if(TARGET test_headers_generated_${device_name})
     message(WARNING "Tried to add test test_headers_generated_${device_name} which already exists.")
-  else()
+  elseif(TARGET ${device_name}_generated)
     add_custom_target(
       test_headers_generated_${device_name}
       ALL
