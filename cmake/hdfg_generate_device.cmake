@@ -35,7 +35,4 @@ function(hdfg_generate_device input_file output_directory)
   )
     add_custom_target(${device_name}_generated DEPENDS ${device_name}_generated_)
   endif()
-
-  # add_executable(test_headers_${device_name} /tmp/test_headers.cpp)
-  # add_dependencies(test_headers_${device_name} ${device_name}_generated)
 endfunction()

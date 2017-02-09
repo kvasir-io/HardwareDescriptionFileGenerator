@@ -46,6 +46,10 @@ def apply_extension_impl(extension, properties, root):
                 properties.append(element_tag)
                 element_tag.string = str(extension[element])
 
+def get_device_name(in_filename):
+    properties = parse_properties_from_xml(in_filename)
+    return properties.device.find('name').string
+
 
 ######## Template expansion
 def expand_template(in_filename, out_filename, context_pairs=None):
