@@ -163,6 +163,25 @@ def register_address(peripheral, register, cluster):
 
     return padded_hex(address)
 
+def parse_array(element):
+    if element.dimIndex:
+        # use custom indices
+        # TODO
+        first, last = element.dimIndex.string.split('-')
+        indices = range(int(first), int(last) + 1)
+    else:
+        indices = range(element.dim.string)
+    out = []
+    increment = sanitize_int(element.dimIncrement.string, 0)
+    for index in indices:
+        entry = element
+        entry.addressOffset.string = str(sanitize_int(entry.addressOffset.string, 0)
+                + increment * (index - indices[0]))
+        name = element.find('name').string.replace('%s', str(index))
+        entry.find('name').string = name
+        out.append(entry)
+    return out
+
 def get_registers(peripheral):
     # get all the registers for this peripheral
     import bs4.element
@@ -173,20 +192,19 @@ def get_registers(peripheral):
     for register in registers:
         if register is None or not type(register) == bs4.element.Tag or not register.name == 'register':
             continue
-        # Check for alternateGroup and alternateRegister here
-        #if register.alternateRegister:
-        #    redefined_name = register.alternateRegister.string
-        #    assert redefined_name in out
-        # Intentional redefinition of previous register
-        register_name = register.find('name')
-        if register_name in out:
-            if register.alternateGroup:
+        register_name = register.find('name').string
+        # TODO This is valid for registers, clusters, and fields. need to generalize
+        if '[%s]' in register_name:
+            register_array = parse_array(register)
+            for reg_element in register_array:
+                out[reg_element.find('name').string] = reg_element
+        elif register_name in out:
+            if register.alternateGroup or register.alternateRegister:
                 # Intentional redefinition of previous register
                 # Append fields to existing register
-                # This will create valid typedefs
                 out[register_name] = append_fields(out[register_name], register)
         else:
-            out[register.find('name')] = register
+            out[register_name] = register
 
     return out.values()
 
