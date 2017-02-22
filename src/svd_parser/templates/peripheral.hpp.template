@@ -26,7 +26,7 @@ namespace Kvasir {
         enum class @(field_name.capitalize())Val : @(register_type(reg)) {
 @[            for v in field.find_all('enumeratedValue')]@
 @{                value_name = format_enum_value_name(v) }@
-@[                if value_name != 'reserved' and not is_default(v)]@
+@[                if not is_default(v)]@
             @(value_name)=@(format_enum_value(v)),@[if v.description]  /* @(get_str(v.description)) */@[end if]
 @[                end if]@
 @[            end for]@

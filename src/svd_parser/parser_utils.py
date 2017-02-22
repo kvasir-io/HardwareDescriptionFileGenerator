@@ -3,6 +3,7 @@ import em
 import json
 import os
 
+import format_utils
 
 ######## Generic parsing utilities
 def parse_properties_from_xml(input_filename):
@@ -23,7 +24,7 @@ def apply_extension(extension, properties):
 # Recursively propagate JSON extension map into the parsed soup
 def apply_extension_impl(extension, properties, root):
     for element in extension:
-        property_tags = properties.find_all(element, limit=1)
+        property_tags = properties.find_all(element)
         # If the key "element" is already in the property tree:
         if len(property_tags) > 0:
             # Override the element
@@ -121,16 +122,30 @@ def parse_device(in_filename, out_directory,
         output_headers.append(io_path)
 
         if write_files:
-            # This takes a long time.
             io_context = [('io', io), ('device', properties.device)]
             expand_template(os.path.join(template_dir, 'io.hpp.template'),
                     io_path, context_pairs=io_context)
             if verbose:
                 print('Wrote {}'.format(io_path))
 
-    for peripheral in properties.find_all('peripheral'):
-        if peripheral.find('name') is None:
+    for peripheral in properties.device.peripherals:
+        if peripheral.find('name') is None or type(peripheral.find('name')) is int:
             continue
+        if peripheral.get('derivedFrom'):
+            # Find the parent peripheral
+            print peripheral.get('derivedFrom')
+
+            parent_peripheral = None
+            for p in properties.device.peripherals:
+                if p.find('name') is None or type(p.find('name')) is int:
+                    continue
+                if p.find('name').string == peripheral['derivedFrom']:
+                    parent_peripheral = p
+
+                    # Override the derivedFrom peripheral with the given attributes.
+                    peripheral = format_utils.override_peripheral(peripheral, parent_peripheral);
+                    break
+
         output_name = os.path.join(final_out_directory, peripheral.find('name').string + '.hpp')
         output_headers.append(output_name)
 

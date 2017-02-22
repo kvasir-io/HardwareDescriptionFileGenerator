@@ -1,3 +1,5 @@
+from bs4 import BeautifulSoup
+import bs4.element
 from functools import reduce
 from operator import add
 import math
@@ -167,10 +169,13 @@ def parse_array(element):
     if element.dimIndex:
         # use custom indices
         # TODO
-        first, last = element.dimIndex.string.split('-')
-        indices = range(int(first), int(last) + 1)
+        if '-' in element.dimIndex.string:
+            first, last = element.dimIndex.string.split('-')
+            indices = range(int(first), int(last) + 1)
+        else:
+            indices = [int(i) for i in element.dimIndex.string.split(',')]
     else:
-        indices = range(element.dim.string)
+        indices = range(sanitize_int(element.dim.string))
     out = []
     increment = sanitize_int(element.dimIncrement.string, 0)
     for index in indices:
@@ -184,7 +189,6 @@ def parse_array(element):
 
 def get_registers(peripheral):
     # get all the registers for this peripheral
-    import bs4.element
     registers = peripheral.find('registers')
     out = {}
     if registers is None:
@@ -199,7 +203,10 @@ def get_registers(peripheral):
             for reg_element in register_array:
                 out[reg_element.find('name').string] = reg_element
         elif register_name in out:
-            if register.alternateGroup or register.alternateRegister:
+            original_reg = out[register_name]
+            is_alternate = register.alternateGroup or register.alternateRegister
+            original_is_alternate = original_reg.alternateGroup or original_reg.alternateRegister
+            if is_alternate or original_is_alternate:
                 # Intentional redefinition of previous register
                 # Append fields to existing register
                 out[register_name] = append_fields(out[register_name], register)
@@ -210,7 +217,9 @@ def get_registers(peripheral):
 
 def append_fields(dst, src):
     if dst.find('fields') is None:
-        return dst
+        if src.find('fields') is None:
+            return dst
+        dst, src = src, dst
     for field in src.find_all('field'):
         dst.find('fields').append(field)
     return dst
@@ -232,7 +241,6 @@ register_to_keys = {
 
 
 def expand_register_as_field(register, root):
-    from bs4 import BeautifulSoup
     # TODO Is there a fancy transformation we can do to map the register schema to the field schema
     # in a generic fashion?
     # TODO This could be a bit more succinct.
@@ -391,3 +399,16 @@ def get_str(prop):
             stripped = ''.join(c for c in prop.string if ord(c) < 128)
             return stripped
     return ''
+
+def override_peripheral(peripheral, parent):
+    assert not parent is None
+    assert not peripheral is None
+
+    parent_copy = parent
+    # For all the tags in peripheral that are specified, override them in parent_copy
+    for child in peripheral.children:
+        if type(child) is bs4.element.Tag:
+            original = parent.find(child.name)
+            original.replace_with(child)
+
+    return parent_copy
