@@ -16,12 +16,14 @@ function(hdfg_generate_targets_for_directory)
   foreach(svd_file ${svd_files})
     hdfg_parse_device_name(${svd_file} device_name)
 
+    # Get the
+    get_filename_component(input_dir ${svd_file} DIRECTORY)
     set(extension "")
     # Look for the device under data/extensions and pass the extension if it exists
-    file(GLOB_RECURSE extension_files "${input_dir}/extensions/*.json")
+    file(GLOB_RECURSE extension_files "${input_dir}/*.json")
     foreach(extension_file ${extension_files})
       hdfg_parse_device_name(${extension_file} ext_device_name)
-      if(${device_name} EQUAL ${ext_device_name})
+      if(${device_name} STREQUAL ${ext_device_name})
         set(extension ${extension_file})
       endif()
     endforeach()

@@ -2,8 +2,7 @@ cmake_minimum_required(VERSION 3.2.0)
 project(HardwareDescriptionFileGenerator)
 include(cmake/hdfg_generate_targets_for_directory.cmake)
 
-# TODO when 
-set(DATA_DIRECTORY "data")
+set(DATA_DIRECTORY "deps/chip")
 
 # Options
 # BOARDS
