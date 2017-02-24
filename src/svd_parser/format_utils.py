@@ -120,9 +120,16 @@ def reserved(io, key, device, port):
     register = unique_lookup(peripheral.registers, 'register', register_name)
 
     for field in register.find_all('field'):
-        clearBitsFromRange(sanitize_int(field.bitOffset.string) + sanitize_int(field.bitWidth.string) - 1,
-                sanitize_int(field.bitOffset.string),
-                reserved)
+        if field.bitOffset is not None and field.bitWidth is not None:
+            clearBitsFromRange(sanitize_int(field.bitOffset.string) + sanitize_int(field.bitWidth.string) - 1,
+                    sanitize_int(field.bitOffset.string),
+                    reserved)
+        elif field.bitRange is not None:
+            bit_range = parse_bit_range(field.bitRange)
+            clearBitsFromRange(sanitize_int(bit_range[0], 0), sanitize_int(bit_range[1], 0), reserved)
+        elif field.msb is not None and field.lsb is not None:
+            # return sanitize_int(field.msb.string, 0)
+            clearBitsFromRange(sanitize_int(field.msb.string, 0), sanitize_int(field.lsb.string, 0), reserved)
     return padded_hex(reserved)
 
 
