@@ -2,7 +2,7 @@
 # For each generated header, add this test target (has dependency on all generated targets)
 # Then compile the target
 
-file(GLOB_RECURSE svd_files "${CMAKE_SOURCE_DIR}/data/*.svd")
+file(GLOB_RECURSE svd_files "${CMAKE_SOURCE_DIR}/deps/chip/chips/*.svd")
 
 foreach(svd_file ${svd_files})
   hdfg_parse_device_name(${svd_file} device_name)
