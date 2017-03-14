@@ -6,7 +6,6 @@ This library depends on the kvasir::chip repository for it's svd files. This is 
 ```
 git submodule init
 git submodule update
-
 ```
 
 You also need to install Python and two dependencies: Beautiful Soup and EmPy.
