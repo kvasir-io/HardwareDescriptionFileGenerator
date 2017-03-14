@@ -1,0 +1,7 @@
+[submodule "deps/Kvasir"]
+	path = deps/Kvasir
+	url = git@github.com:kvasir-io/Kvasir.git
+[submodule "deps/chip"]
+	path = deps/chip
+	url = https://github.com/kvasir-io/chip
+	branch = development
