@@ -301,7 +301,7 @@ def access(field):
 
     if access == 'readWrite' and modified_write_values == 'normal' and read_action == 'normal':
         return 'ReadWriteAccess'
-    return 'Access<Register::AccessType::%s,Register::ReadActionType::%s,Register::ModifiedWriteValueType::%s>' % (
+    return 'Access<bit::AccessType::%s,bit::ReadActionType::%s,bit::ModifiedWriteValueType::%s>' % (
             access, read_action, modified_write_values)
 
 
