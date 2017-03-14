@@ -24,6 +24,6 @@ CMake will look for a directory defined in the CmakeLists.txt for the svd files.
 
 However, this introduces a *lot* of build targets for this generator. To narrow down which board to generate headers for, you can specify two kinds of regexes to CMake.
 
-For example, `cmake .. -DVENDORS="Atmel"` will only generate headers for Atmel boards. (Actually, it will only generate headers for svd files under the directory called "data/Atmel".)
+For example, `cmake .. -DVENDORS="Atmel"` will only generate headers for Atmel boards. (Actually, it will only generate headers for svd files under the directory called "deps/chip/chips/Atmel".)
 
 `cmake .. -DBOARDS="STM32F7*"` will build all STM32F7-family boards. (Actually, it will search the "data" directory for any svd files starting with the token `STM32F7`.)
