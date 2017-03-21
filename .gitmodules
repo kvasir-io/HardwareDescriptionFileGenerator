@@ -5,3 +5,9 @@
 	path = deps/chip
 	url = https://github.com/kvasir-io/chip
 	branch = development
+[submodule "deps/bit"]
+	path = deps/bit
+	url = git@github.com:kvasir-io/bit.git
+[submodule "deps/mpl"]
+	path = deps/mpl
+	url = git@github.com:kvasir-io/mpl.git

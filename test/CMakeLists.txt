@@ -19,7 +19,7 @@ foreach(svd_file ${svd_files})
     add_dependencies(test_headers_${device_name} test_headers_generated_${device_name})
     add_dependencies(test_headers_${device_name} ${device_name}_generated)
     target_include_directories(test_headers_${device_name} PUBLIC
-      ${CMAKE_BINARY_DIR}/include ${CMAKE_SOURCE_DIR}/deps/Kvasir/Lib ${CMAKE_CURRENT_BINARY_DIR}/${device_name}/)
+      ${CMAKE_BINARY_DIR}/include ${CMAKE_SOURCE_DIR}/deps/mpl/src ${CMAKE_SOURCE_DIR}/deps/bit/src ${CMAKE_CURRENT_BINARY_DIR}/${device_name}/)
     target_compile_options(test_headers_${device_name} PUBLIC "-std=c++14")
   endif()
 

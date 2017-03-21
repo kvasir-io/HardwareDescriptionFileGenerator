@@ -44,7 +44,7 @@ namespace kvasir {
 @[              if cluster]@
 @{              outer_namespace = format_namespace(get_str(cluster.find('name'))) + '::' + reg_name}@
 @[              end if]@
-            constexpr bit::FieldValue<decltype(@(outer_namespace)::@(field_name))::Type,
+            constexpr bit::FieldValue<typename std::remove_const<decltype(@(outer_namespace)::@(field_name))>::type,
                                           @(field_name.capitalize())Val::@(value_name)> @(value_name){};
 @[            end for]@
         }  // @(field_name.capitalize())ValC

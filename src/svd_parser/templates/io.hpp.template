@@ -10,7 +10,7 @@ namespace kvasir {
 @[if key_name != 'default']
 @[for port in expand_ports(io)]@
           template<int Pin>
-          struct MakeAction<Action::@(key_name.capitalize()), Register::PinLocation<@(port_number(port)), Pin>> :
+          struct MakeAction<Action::@(key_name.capitalize()), bit::PinLocation<@(port_number(port)), Pin>> :
               bit::Action<
                   bit::FieldLocation<
                       bit::Address<@(io_address(io, key, device, port)), @(reserved(io, key, device, port))>, (1 << Pin)>,
