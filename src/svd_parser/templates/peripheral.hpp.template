@@ -1,14 +1,14 @@
 #pragma once
-#include <Register/Utility.hpp>
-namespace Kvasir {
-    namespace Chip {
+#include <kvasir/bit/utility.hpp>
+namespace kvasir {
+    namespace chip {
 @[if peripheral.description]@
     /* @(get_str(peripheral.description)) */
 @[end if]@
 @[def emit_register(peripheral, reg, cluster)]@
 @{    reg_name = format_register_name(peripheral, reg) }@
     namespace @(reg_name) {  @[if reg.description]/* @(get_str(reg.description)) */@[end if]
-        using Addr = Register::Address<@(register_address(peripheral, reg, cluster)),
+        using Addr = bit::Address<@(register_address(peripheral, reg, cluster)),
                                        @(no_action_if_zero_bits(reg)),
                                        @(no_action_if_one_bits(reg)),
                                        @(register_type(reg))>;
@@ -32,9 +32,9 @@ namespace Kvasir {
 @[            end for]@
         };
 
-        constexpr Register::FieldLocation<Addr,
-                                          Register::maskFromRange(@(msb(field)), @(lsb(field))),
-                                          Register::@(access(field)),
+        constexpr bit::FieldLocation<Addr,
+                                          bit::maskFromRange(@(msb(field)), @(lsb(field))),
+                                          bit::@(access(field)),
                                           @(field_name.capitalize())Val> @(field_name){};
 
         namespace @(get_str(field.find('name')).capitalize())ValC {
@@ -44,14 +44,14 @@ namespace Kvasir {
 @[              if cluster]@
 @{              outer_namespace = format_namespace(get_str(cluster.find('name'))) + '::' + reg_name}@
 @[              end if]@
-            constexpr Register::FieldValue<decltype(@(outer_namespace)::@(field_name))::Type,
+            constexpr bit::FieldValue<typename std::remove_const<decltype(@(outer_namespace)::@(field_name))>::type,
                                           @(field_name.capitalize())Val::@(value_name)> @(value_name){};
 @[            end for]@
         }  // @(field_name.capitalize())ValC
 @[        else]@
-        constexpr Register::FieldLocation<Addr,
-                                          Register::maskFromRange(@(msb(field)), @(lsb(field))),
-                                          Register::@(access(field)),
+        constexpr bit::FieldLocation<Addr,
+                                          bit::maskFromRange(@(msb(field)), @(lsb(field))),
+                                          bit::@(access(field)),
                                           @(register_type(reg))> @(field_name){};
 @[        end if]@
 @[    end for]@
@@ -70,5 +70,5 @@ namespace Kvasir {
 @[for reg in get_registers(peripheral)]@
 @{ print emit_register(peripheral, reg, None) }@
 @[end for]@
-    }  // namespace Chip
+    }  // namespace chip
 }  // namespace Kvasir
